@@ -10,6 +10,52 @@ from random import seed,shuffle
 
 # pyDataFrame object
 class PyDataFrame(DataFrame):
+    """
+    Class heritate of DataFrame from pandas module.
+    
+    It perform an automatic separation between train set and test set.
+    When your init a PyDataFrame you plug a set of data, select which features will be in
+    thes inputs of yours problem and the outputs. A schuffle function randomly select
+    indexes save the result.
+    
+    
+    Here an example :
+        
+    >>> pdf = PyDataFrame(data = data_object,
+                         features = ["feat1","feat2",...],
+                         tagret = ["target1","target2",...],
+                         rate = 0.3,
+                         seed = 1234)
+    
+    If you want an other selection for train and test set, use 'shuffle_index' function again.
+    
+    
+    @attributes 
+    
+    attribute 1 : features : list of columns names containing features of your problem
+    type atribute 1 : list of string
+
+    attribute 2 : target : list of columns which your target, or the features you want to predict.
+                            Their can be more than once.
+    type attribute 2 : list of string
+    
+    attribute 3 : rate : sepration ratio
+    type attribute 3 : float
+    
+    attribute 4 : seed : the id of a seed, if you want a replicate separation between train and test
+                        set.
+    type attribute 4 : int
+    
+    attribute 5 : list of indexes wich selected for the train set
+    type attribute 5 : list of int
+    
+    attribute 6 : list of indexes wich selected for the test set
+    type attribute 6 : list of int
+    
+
+    V1 - 21FEB19 - Armand Léonardi
+    """
+    
     
     features = []
     target = []
@@ -18,8 +64,8 @@ class PyDataFrame(DataFrame):
     idx_train = []
     idx_test = []
     	
-    def __init__(self,features,target,rate=0.3,seed=None,**kwargs):
-        super(PyDataFrame,self).__init__(**kwargs)
+    def __init__(self,features,target,rate=0.3,seed=None,*args,**kwargs):
+        super(PyDataFrame,self).__init__(*args,**kwargs)
         self.features = features
         self.target = target
         self.rate = rate
@@ -28,15 +74,19 @@ class PyDataFrame(DataFrame):
                 
     
     def X_train(self,feature = None):
+        """Return the inputs (features) of the train set"""
         return self[self.features if feature == None else feature].loc[self.idx_train]
     
     def y_train(self,target = None):
+        """Return the outputs of the train set"""
         return self[self.target if target == None else target].loc[self.idx_train]
     
     def X_test(self,feature = None):
+        """Return the inputs (features) of the test set"""
         return self[self.features if feature == None else feature].loc[self.idx_test]
     
     def y_test(self,target = None):
+        """Return the outputs of the test set"""
         return self[self.target if target == None else target].loc[self.idx_test]
     
     def shuffle_index(self,_seed=None):
@@ -67,4 +117,4 @@ class PyDataFrame(DataFrame):
         self.idx_train = output[0]
         self.idx_test = output[1]
         
-        return None
+        return 1
