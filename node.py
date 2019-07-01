@@ -6,6 +6,7 @@ Created on Tue Jun 11 17:47:10 2019
 """
 
 from numpy import arange
+from sklearn.linear_model import LinearRegression
 
 class Node: 
     
@@ -29,13 +30,19 @@ class Node:
 class Tree:
     
     limit = 4
+    eps = None
     
-    def __init__(self,T,eps):
-        self.root = self.generateTree(T,eps)[-1][0]
+    def __init__(self,T,eps,build = True):
+        self.eps = eps
+        self.T = T
+        if build:
+            self.root = self.generateTree(T,eps)[-1][0]
+        else:
+            self.root = self.findRoot(self.T)
 
     def makeAFather(self,left,right,value):
         t = left.t + 1
-        h = left.h + eps
+        h = left.h + self.eps
         father = Node(t,h,value,left,right,None)
         left.father = father
         right.father = father
@@ -84,7 +91,7 @@ class Tree:
         else:
             pass
         
-    def convertBinMsg(self,binMsg):
+    def convertBinMsg_beta(self,binMsg):
         currentNode = self.root
         self.coord = [currentNode.extract()]
         for x in binMsg:
@@ -94,160 +101,64 @@ class Tree:
                 currentNode = currentNode.right
             self.coord.append(currentNode.extract())
         return self.coord
-
-    def convertCurveToBinmsg(self,coefs,intercept,T):
-        lr2 = LinearRegression()
-        lr2.coef_ = coefs
-        lr2.intercept_ = intercept
+    
+    
+    def _convertBinMsg(self,binMsg,currentNode):
         
-        t = T
+        if currentNode != None:
+            try:
+                x = binMsg[0]
+            except:
+                pass
+            
+            self.coord = [currentNode.extract()]
+            left,right = self._findChildren(currentNode)
+            if x == left.value: # 0 normalement
+                self.coord.append(left.extract())
+                self._convertBinMsg(binMsg[1:],left)
+            elif x == right.value: # 1  normalement
+                self.coord.append(right.extract())
+                self._convertBinMsg(binMsg[1:],right)
+        else:
+            pass
+
+    def convertBinMsg(self,binMsg):
+        self._convertBinMsg(binMsg.copy(),self.root)
         
-        
-        
-#%%  
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-import scipy
-
-msg = np.random.randint(0,2,17)
-
-T = len(msg)
-eps = 1
-tree = Tree(T,eps)
-
-X,Y = zip(*tree.convertBinMsg(msg))
-
-X = np.array(X)
-Y = np.array(Y)
-
-
-
-
-
-#%%
-plt.plot(X,Y,'.',label = "data")
-
-# f1 fit
-f1 = lambda x,a,b : a*np.exp(b*x)
-results = scipy.optimize.curve_fit(f1,  X,  Y)
-a,b = results[0]
-e1 = np.sqrt(np.sum((Y - f1(X,a,b))**2))
-plt.plot(X,f1(X,a,b),label="f1 : %s"%e1)
-
-
-# f2 fit
-f2 = lambda x,a,b,c,d : c*np.exp(a*x+b)+d
-results = scipy.optimize.curve_fit(f2,  X,  Y)
-a,b,c,d = results[0]
-e2 = np.sqrt(np.sum((Y - f2(X,a,b,c,d))**2))
-plt.plot(X,f2(X,a,b,c,d),label="f2 : %s"%e2)
-
-
-# f2 fit with more parameters
-f22 = lambda x,a,b,c,d : c*np.exp(a*x+b)+d
-results = scipy.optimize.curve_fit(f22,  X,  Y,p0 =(0.8,0.8,0.8,0.8))
-a,b,c,d = results[0]
-e2 = np.sqrt(np.sum((Y - f22(X,a,b,c,d))**2))
-plt.plot(X,f22(X,a,b,c,d),label="f22 : %s"%e2)
-
-
-# f3
-f3 = lambda x,a,c,d : c*np.exp(a*x)+d
-results = scipy.optimize.curve_fit(f3,  X,  Y)
-a,c,d = results[0]
-e3 = np.sqrt(np.sum((Y - f3(X,a,c,d))**2))
-plt.plot(X,f3(X,a,c,d),label="f3 : %s"%e3)
-
-
-plt.legend()
-
-#%%
-
-# f1 fit
-f1 = lambda x,a,b : a*np.exp(b*x)
-results = scipy.optimize.curve_fit(f1,  X,  Y)
-a,b = results[0]
-plt.plot(X,(Y-f1(X,a,b))**2,label="f1 errors")
-
-
-# f2 fit
-f2 = lambda x,a,b,c,d : c*np.exp(a*x+b)+d
-results = scipy.optimize.curve_fit(f2,  X,  Y)
-a,b,c,d = results[0]
-plt.plot(X,(Y-f2(X,a,b,c,d))**2,label="f2 errors")
-
-
-# f2 fit with more parameters
-f22 = lambda x,a,b,c,d : c*np.exp(a*x+b)+d
-results = scipy.optimize.curve_fit(f22,  X,  Y,p0 =(0.8,0.8,0.8,0.8))
-a,b,c,d = results[0]
-plt.plot(X,(Y-f22(X,a,b,c,d))**2,label="f22 errors")
-
-
-# f3
-f3 = lambda x,a,c,d : c*np.exp(a*x)+d
-results = scipy.optimize.curve_fit(f3,  X,  Y)
-a,c,d = results[0]
-e3 = np.sqrt(np.sum((Y - f3(X,a,c,d))**2))
-plt.plot(X,(Y-f3(X,a,c,d))**2,label="f3 errors")
-
-
-plt.legend()
-
-
-
-
-#%%
-deg = 5
-p = PolynomialFeatures(degree = deg).fit(X.reshape(-1,1),Y.reshape(-1,1))
-X_transform = p.transform(X.reshape(-1,1))
-lr = LinearRegression().fit(X_transform,Y.reshape(-1,1))
-
-Y_pred = lr.predict(X_transform)
-
-
-plt.plot(X,Y,'.')
-plt.plot(X,Y_pred)
-
-for i in range(5):
-    print("%s"%i,end = "\r")
-    msg = np.random.randint(0,2,10)
+    def extractCoords(self,pathType = 'preOrder'):
+        self.raw_coords = []
+        return self._extractCoord(self.root,pathType)
     
-    T = len(msg)
-    eps = 10E-4
-    tree = Tree(T,eps)
+    def _extractCoord(self,node,pathType):
+            
+        if pathType == "inOrder":
+
+            if node.left != None: self._extractCoord(node.left,pathType)
+            self.raw_coords.append(node.extract())
+            if node.right != None: self._extractCoord(node.right,pathType)
+
+        elif pathType == "preOrder":
+
+            self.raw_coords.append(node.extract())
+            if node.left != None: self._extractCoord(node.left,pathType)
+            if node.right != None: self._extractCoord(node.right,pathType)
+
+        elif pathType == "postOrder":
+
+            if node.left != None: self._extractCoord(node.left,pathType)
+            if node.right != None: self._extractCoord(node.right,pathType)
+            self.raw_coords.append(node.extract())
+
+        else:
+            pass
+        return 0
     
-    X,Y = zip(*tree.convertBinMsg(msg))
+    def findRoot(self,T):
+        return Node(T,2**T-1+T)
     
-    X = np.array(X)
-    Y = np.array(Y)
-    
-    deg = 5
-    p = PolynomialFeatures(degree = deg).fit(X.reshape(-1,1),Y.reshape(-1,1))
-    X_transform = p.transform(X.reshape(-1,1))
-    lr = LinearRegression().fit(X_transform,Y.reshape(-1,1))
-    
-    Y_pred = lr.predict(X_transform)
-    
-    
-    plt.plot(X,Y,'.',label="%s"%i)
-    plt.plot(X,Y_pred,label="%s line"%i)
-plt.legend()
-
-
-a = 1/2
-b = 1
-c = 1
-f = lambda x : np.exp(a*x+b)+c
-
-x = np.arange(10)
-y = f(x)
-
-plt.plot(x,y)
-
-
-
-
-
+    def _findChildren(self,node):
+        t,h = node.extract()
+        out = None
+        if t>=1:
+            out = (Node(t-1,h-1,0),Node(t-1,h-1-2**(t-1),1))
+        return out
