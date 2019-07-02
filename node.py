@@ -91,42 +91,28 @@ class Tree:
         else:
             pass
         
-    def convertBinMsg_beta(self,binMsg):
-        currentNode = self.root
+
+    def convertBinMsg(self,binMsg,verbose = False):
+        self.root.value = binMsg[0]
+        self._convertBinMsg(binMsg.copy(),self.root,verbose)
+
+    def _convertBinMsg(self,binMsg,root,verbose = False):
+        currentNode = root
         self.coord = [currentNode.extract()]
         for x in binMsg:
+            if verbose : print(currentNode)
             if x == 0:
-                currentNode = currentNode.left
+                currentNode = self._findLeftChild(currentNode)
+                self.coord.append(currentNode.extract())
+            elif x == 1:
+                currentNode = self._findRightChild(currentNode)
+                self.coord.append(currentNode.extract())
             else:
-                currentNode = currentNode.right
-            self.coord.append(currentNode.extract())
-        return self.coord
-    
-    
-    def _convertBinMsg(self,binMsg,currentNode):
-        
-        if currentNode != None:
-            try:
-                x = binMsg[0]
-            except:
-                pass
-            
-            self.coord = [currentNode.extract()]
-            left,right = self._findChildren(currentNode)
-            if x == left.value: # 0 normalement
-                self.coord.append(left.extract())
-                self._convertBinMsg(binMsg[1:],left)
-            elif x == right.value: # 1  normalement
-                self.coord.append(right.extract())
-                self._convertBinMsg(binMsg[1:],right)
-        else:
-            pass
-
-    def convertBinMsg(self,binMsg):
-        self._convertBinMsg(binMsg.copy(),self.root)
+                raise ValueError("Message element is not binary: %s"%x)
+        return 1
         
     def extractCoords(self,pathType = 'preOrder'):
-        self.raw_coords = []
+        self.path_coords = []
         return self._extractCoord(self.root,pathType)
     
     def _extractCoord(self,node,pathType):
@@ -151,7 +137,7 @@ class Tree:
 
         else:
             pass
-        return 0
+        return 1
     
     def findRoot(self,T):
         return Node(T,2**T-1+T)
@@ -159,6 +145,20 @@ class Tree:
     def _findChildren(self,node):
         t,h = node.extract()
         out = None
-        if t>=1:
+        if t-1 >= 0:
             out = (Node(t-1,h-1,0),Node(t-1,h-1-2**(t-1),1))
+        return out
+    
+    def _findLeftChild(self,node):
+        out = None
+        t,h = node.extract()
+        if t - 1 >= 0:
+            out = Node(t-1,h-1,0)
+        return out
+    
+    def _findRightChild(self,node):
+        out = None
+        t,h = node.extract()
+        if t - 1 >= 0:
+            out = Node(t-1,h-1-2**(t-1),1)
         return out
