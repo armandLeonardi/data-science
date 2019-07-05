@@ -162,3 +162,35 @@ class Tree:
         if t - 1 >= 0:
             out = Node(t-1,h-1-2**(t-1),1)
         return out
+    
+    def eval_perf(self,curve_values,values):
+        self.performances = []
+        self.T = len(values)
+        return self._eval_perf(curve_values,values,self.root)
+    
+    def _eval_perf(self,curve_values,values,node):
+        
+        left_child = self._findLeftChild(node)
+        right_child = self._findRightChild(node)
+        
+        t_left,h_left = left_child.extract()
+        t_right,h_right = right_child.extract()
+
+        
+        
+        dl = abs(curve_values[self.T - t_left] - h_left)
+        dr = abs(curve_values[self.T - t_right]- h_right)
+        
+        if min(dl,dr) == dl and values[self.T - t_left] == left_child.value:
+            self.performances.append((t_left,1))
+        elif min(dl,dr) == dl and values[self.T - t_left] == right_child.value:
+            self.performances.append((t_left,0))
+        elif min(dl,dr) == dr and values[self.T - t_right] == left_child.value:
+            self.performances.append((t_left,0))
+        elif min(dl,dr) == dr and values[self.T - t_right] == right_child.value:
+            self.performances.append((t_left,1))
+        
+        if min(dl,dr) == dl:
+            self._eval_perf(curve_values,values,left_child)
+        else:
+            self._eval_perf(curve_values,values,right_child)
